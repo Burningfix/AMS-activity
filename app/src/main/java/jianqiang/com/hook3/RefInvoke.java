@@ -31,8 +31,8 @@ public class RefInvoke {
 
     //一个参数
     public static Object createObject(String className, Class pareTyple, Object pareVaule) {
-        Class[] pareTyples = new Class[]{ pareTyple };
-        Object[] pareVaules = new Object[]{ pareVaule };
+        Class[] pareTyples = new Class[]{pareTyple};
+        Object[] pareVaules = new Object[]{pareVaule};
 
         try {
             Class r = Class.forName(className);
@@ -46,8 +46,8 @@ public class RefInvoke {
 
     //一个参数
     public static Object createObject(Class clazz, Class pareTyple, Object pareVaule) {
-        Class[] pareTyples = new Class[]{ pareTyple };
-        Object[] pareVaules = new Object[]{ pareVaule };
+        Class[] pareTyples = new Class[]{pareTyple};
+        Object[] pareVaules = new Object[]{pareVaule};
 
         return createObject(clazz, pareTyples, pareVaules);
     }
@@ -78,7 +78,6 @@ public class RefInvoke {
     }
 
 
-
     //多个参数
     public static Object invokeInstanceMethod(Object obj, String methodName, Class[] pareTyples, Object[] pareVaules) {
         if (obj == null)
@@ -92,7 +91,7 @@ public class RefInvoke {
 
         } catch (Exception e) {
             e.printStackTrace();
-        } 
+        }
 
         return null;
     }
@@ -112,8 +111,6 @@ public class RefInvoke {
 
         return invokeInstanceMethod(obj, methodName, pareTyples, pareVaules);
     }
-
-
 
 
     //无参
@@ -166,13 +163,12 @@ public class RefInvoke {
             Method method = clazz.getDeclaredMethod(method_name, pareTyples);
             method.setAccessible(true);
             return method.invoke(null, pareVaules);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
 
         return null;
     }
-
 
 
     //简写版本
@@ -225,8 +221,6 @@ public class RefInvoke {
             e.printStackTrace();
         }
     }
-
-
 
 
     public static Object getStaticFieldObject(String className, String filedName) {
