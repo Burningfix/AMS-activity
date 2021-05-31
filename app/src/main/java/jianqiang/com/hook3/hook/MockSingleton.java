@@ -9,21 +9,20 @@ import java.lang.reflect.Method;
 
 import jianqiang.com.hook3.StubActivity;
 
-class MockClass1 implements InvocationHandler {
+class MockSingleton implements InvocationHandler {
 
-    private static final String TAG = "MockClass1";
+    private static final String TAG = "sanbo.MockSingleton";
 
     Object mBase;
 
-    public MockClass1(Object base) {
+    public MockSingleton(Object base) {
         mBase = base;
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-        Log.e("bao", method.getName());
-
+        logi("method :" + method.getName());
         if ("startActivity".equals(method.getName())) {
             // 只拦截这个方法
             // 替换参数, 任你所为;甚至替换原始Activity启动别的Activity偷梁换柱
@@ -55,11 +54,15 @@ class MockClass1 implements InvocationHandler {
             // 替换掉Intent, 达到欺骗AMS的目的
             args[index] = newIntent;
 
-            Log.d(TAG, "hook success");
+            logi("hook success");
             return method.invoke(mBase, args);
 
         }
 
         return method.invoke(mBase, args);
+    }
+
+    private void logi(String info) {
+        Log.i(TAG, info);
     }
 }

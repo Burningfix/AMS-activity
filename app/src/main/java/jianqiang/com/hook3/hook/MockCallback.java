@@ -13,18 +13,19 @@ import jianqiang.com.hook3.RefInvoke;
  * @author weishu
  * @date 16/1/7
  */
-class MockClass2 implements Handler.Callback {
+class MockCallback implements Handler.Callback {
 
     Handler mBase;
+    private static final String TAG = "sanbo.MockCallback";
 
-    public MockClass2(Handler base) {
+    public MockCallback(Handler base) {
         mBase = base;
     }
 
     @Override
     public boolean handleMessage(Message msg) {
 
-        Log.i("sanbo.MockClass2","handleMessage msg.what:"+msg.what);
+        logi("handleMessage msg.what:" + msg.toString());
         // support android 8
         switch (msg.what) {
             // ActivityThread里面 "LAUNCH_ACTIVITY" 这个字段的值是100
@@ -41,11 +42,15 @@ class MockClass2 implements Handler.Callback {
         mBase.handleMessage(msg);
         return true;
     }
+
     private void handleActivity(Message msg) {
         // 这里简单起见,直接取出TargetActivity;
         Object obj = msg.obj;
 
         List<Object> mActivityCallbacks = (List<Object>) RefInvoke.getFieldObject(obj, "mActivityCallbacks");
+        logi("handleActivity msg:" + msg.toString());
+        logi("handleActivity mActivityCallbacks:" + mActivityCallbacks.toString());
+
         if (mActivityCallbacks.size() > 0) {
             String className = "android.app.servertransaction.LaunchActivityItem";
             if (mActivityCallbacks.get(0).getClass().getCanonicalName().equals(className)) {
@@ -56,6 +61,7 @@ class MockClass2 implements Handler.Callback {
             }
         }
     }
+
     private void handleLaunchActivity(Message msg) {
         // 这里简单起见,直接取出TargetActivity;
         Object obj = msg.obj;
@@ -63,10 +69,14 @@ class MockClass2 implements Handler.Callback {
         // 把替身恢复成真身
         Intent intent = (Intent) RefInvoke.getFieldObject(obj, "intent");
 
-        Log.i("sanbo.MockClass2","handleLaunchActivity intent:" +intent.toString());
+        logi("handleLaunchActivity before  intent:" + intent.toString());
         Intent targetIntent = intent.getParcelableExtra(AMSHookHelper.EXTRA_TARGET_INTENT);
         intent.setComponent(targetIntent.getComponent());
+        logi("handleLaunchActivity after intent:" + intent.toString());
+
     }
 
-
+    private void logi(String info) {
+        Log.i(TAG, info);
+    }
 }
