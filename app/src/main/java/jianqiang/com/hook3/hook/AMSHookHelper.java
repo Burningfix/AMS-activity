@@ -45,7 +45,7 @@ public class AMSHookHelper {
             Object proxy = Proxy.newProxyInstance(
                     Thread.currentThread().getContextClassLoader(),
                     new Class<?>[]{classB2Interface},
-                    new MockClass1(mInstance));
+                    new MethodInvoke(mInstance));
             logi("hookAMN proxy: " + proxy);
 
             //把gDefault的mInstance字段，修改为proxy
@@ -82,7 +82,7 @@ public class AMSHookHelper {
             logi("hookActivityThread mH: " + mH);
 
             //把Handler的mCallback字段，替换为new MockClass2(mH)
-            RefInvoke.setFieldObject(Handler.class, mH, "mCallback", new MockClass2(mH));
+            RefInvoke.setFieldObject(Handler.class, mH, "mCallback", new ActivityThreadMessageHook(mH));
         } catch (Throwable e) {
             loge(Log.getStackTraceString(e));
         }

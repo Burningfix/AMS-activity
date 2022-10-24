@@ -13,12 +13,12 @@ import jianqiang.com.hook3.RefInvoke;
  * @author weishu
  * @date 16/1/7
  */
-class MockClass2 implements Handler.Callback {
+class ActivityThreadMessageHook implements Handler.Callback {
 
     private static final String TAG = "sanbo.MockClass2";
     Handler mBase;
 
-    public MockClass2(Handler base) {
+    public ActivityThreadMessageHook(Handler base) {
         mBase = base;
     }
 
@@ -26,6 +26,7 @@ class MockClass2 implements Handler.Callback {
     public boolean handleMessage(Message msg) {
 
         try {
+            logi("------MockClass2---[handleMessage]----msg :" +msg.what+"\r\n\tmsg:"+msg);
             switch (msg.what) {
                 // ActivityThread里面 "LAUNCH_ACTIVITY" 这个字段的值是100
                 // 本来使用反射的方式获取最好, 这里为了简便直接使用硬编码

@@ -5,18 +5,17 @@ import android.content.Intent;
 import android.util.Log;
 
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import jianqiang.com.hook3.StubActivity;
 
-class MockClass1 implements InvocationHandler {
+class MethodInvoke implements InvocationHandler {
 
     private static final String TAG = "sanbo.MockClass1";
 
     Object mBase;
 
-    public MockClass1(Object base) {
+    public MethodInvoke(Object base) {
         mBase = base;
     }
 
@@ -24,8 +23,13 @@ class MockClass1 implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         try {
-            logi("method :" + method.toString());
-
+            logi("------MockClass1---[invoke]----method :" + method.getName() + "\r\n\t method:" + method);
+//            ------MockClass1---[invoke]----method :
+//                  public abstract void android.app.IActivityManager.setRenderThread(int) throws android.os.RemoteException
+//            ------MockClass2---[handleMessage]----
+//               msg :{ when=-369ms what=159 obj=ClientTransaction TopResumedActivityChangeItem, hashCode,
+//                              mActivityToken = android.os.BinderProxy@cfebd55 mLifecycleStateRequest null
+//                              mActivityCallbacks [TopResumedActivityChangeItem{onTop=true}] target=android.app.ActivityThread$H }
             if ("startActivity".equals(method.getName())) {
                 // 只拦截这个方法
                 // 替换参数, 任你所为;甚至替换原始Activity启动别的Activity偷梁换柱
@@ -59,6 +63,10 @@ class MockClass1 implements InvocationHandler {
 
                 logi("hook success");
                 return method.invoke(mBase, args);
+
+            }else if("checkPermission".equals(method.getName())){
+                loge("返回类型："+method.getReturnType());
+                return 1;
 
             }
         } catch (Throwable e) {

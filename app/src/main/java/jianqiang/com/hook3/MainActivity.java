@@ -15,12 +15,11 @@ public class MainActivity extends Activity {
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
-
         try {
             AMSHookHelper.hookAMN();
             AMSHookHelper.hookActivityThread();
         } catch (Throwable throwable) {
-            throw new RuntimeException("hook failed", throwable);
+            Log.e("sanbo", "attachBaseContext: ", throwable);
         }
     }
 
