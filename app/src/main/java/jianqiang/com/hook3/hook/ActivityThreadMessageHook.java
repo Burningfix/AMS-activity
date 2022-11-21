@@ -1,6 +1,8 @@
 package jianqiang.com.hook3.hook;
 
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -26,7 +28,8 @@ class ActivityThreadMessageHook implements Handler.Callback {
     public boolean handleMessage(Message msg) {
 
         try {
-            logi("------MockClass2---[handleMessage]----msg :" +msg.what+"\r\n\tmsg:"+msg);
+            int launchActivity = getMode();
+            logi("------ActivityThreadMessageHook---[handleMessage]>>>>>>[" + launchActivity + "]<<<<<<----msg :" + msg.what + "\r\n\tmsg:" + msg);
             switch (msg.what) {
                 // ActivityThread里面 "LAUNCH_ACTIVITY" 这个字段的值是100
                 // 本来使用反射的方式获取最好, 这里为了简便直接使用硬编码
@@ -46,6 +49,14 @@ class ActivityThreadMessageHook implements Handler.Callback {
         return true;
     }
 
+    private int getMode() {
+        Object currentActivityThread = RefInvoke.getStaticFieldObject("android.app.ActivityThread", "sCurrentActivityThread");
+        // 由于ActivityThread一个进程只有一个,我们获取这个对象的mH
+        Handler mH = (Handler) RefInvoke.getFieldObject(currentActivityThread, "mH");
+
+        return (int) RefInvoke.getFieldObject(mH, "LAUNCH_ACTIVITY");
+    }
+
     private void handleLaunchActivity(Message msg) {
         // 这里简单起见,直接取出TargetActivity;
         Object obj = msg.obj;
@@ -53,11 +64,20 @@ class ActivityThreadMessageHook implements Handler.Callback {
         // 把替身恢复成真身
         Intent intent = (Intent) RefInvoke.getFieldObject(obj, "intent");
         logi("handleLaunchActivity before intent:" + intent);
-
-        Intent targetIntent = intent.getParcelableExtra(AMSHookHelper.EXTRA_TARGET_INTENT);
+        Intent targetIntent = null;
+        if (Build.VERSION.SDK_INT >= 33) {
+            targetIntent = intent.getParcelableExtra(AMSHookHelper.EXTRA_TARGET_INTENT, Intent.class);
+        } else {
+            targetIntent = intent.getParcelableExtra(AMSHookHelper.EXTRA_TARGET_INTENT);
+        }
+        if (targetIntent == null) {
+            return;
+        }
         intent.setComponent(targetIntent.getComponent());
         logi("handleLaunchActivity end intent:" + intent);
-
+//        // 给插件apk设置主题
+//        ActivityInfo activityInfo= (ActivityInfo) RefInvoke.getFieldObject(obj,"activityInfo");
+//        activityInfo.theme = selectSystemTheme()
     }
 
     private void handleActivity(Message msg) {

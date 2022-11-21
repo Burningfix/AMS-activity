@@ -1,9 +1,14 @@
 package jianqiang.com.hook3.hook;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 import jianqiang.com.hook3.RefInvoke;
@@ -16,6 +21,8 @@ public class AMSHookHelper {
     public static final String EXTRA_TARGET_INTENT = "extra_target_intent";
     private static final String TAG = "sanbo.AMSHookHelper";
 
+
+
     /**
      * Hook AMS
      * 主要完成的操作是  "把真正要启动的Activity临时替换为在AndroidManifest.xml中声明的替身Activity",进而骗过AMS
@@ -27,12 +34,12 @@ public class AMSHookHelper {
         try {
             //获取AMN的gDefault单例gDefault，gDefault是final静态的
             Object gDefault = null;
-            if (android.os.Build.VERSION.SDK_INT <= 25) {
-                //获取AMN的gDefault单例gDefault，gDefault是静态的
-                gDefault = RefInvoke.getStaticFieldObject("android.app.ActivityManagerNative", "gDefault");
-            } else {
-                //获取ActivityManager的单例IActivityManagerSingleton，他其实就是之前的gDefault
+            if (Build.VERSION.SDK_INT >= 29) {
+                gDefault = RefInvoke.getStaticFieldObject("android.app.ActivityTaskManager", "IActivityTaskManagerSingleton");
+            } else if (Build.VERSION.SDK_INT >= 26) {
                 gDefault = RefInvoke.getStaticFieldObject("android.app.ActivityManager", "IActivityManagerSingleton");
+            } else {
+                gDefault = RefInvoke.getStaticFieldObject("android.app.ActivityManagerNative", "gDefault");
             }
             logi("hookAMN gDefault: " + gDefault);
 
@@ -45,12 +52,14 @@ public class AMSHookHelper {
             Object proxy = Proxy.newProxyInstance(
                     Thread.currentThread().getContextClassLoader(),
                     new Class<?>[]{classB2Interface},
-                    new MethodInvoke(mInstance));
+                    new IActivityInvocationHandler(mInstance));
             logi("hookAMN proxy: " + proxy);
 
             //把gDefault的mInstance字段，修改为proxy
             Class class1 = gDefault.getClass();
             RefInvoke.setFieldObject("android.util.Singleton", gDefault, "mInstance", proxy);
+            logi("hookAMN success~~ " );
+
         } catch (Throwable e) {
             loge(Log.getStackTraceString(e));
         }
@@ -74,6 +83,8 @@ public class AMSHookHelper {
 
         try {
             // 先获取到当前的ActivityThread对象
+            //  private static volatile ActivityThread sCurrentActivityThread;
+//            Object currentActivityThread = RefInvoke.invokeStaticMethod("android.app.ActivityThread", "currentActivityThread");
             Object currentActivityThread = RefInvoke.getStaticFieldObject("android.app.ActivityThread", "sCurrentActivityThread");
             logi("hookActivityThread currentActivityThread: " + currentActivityThread);
 
@@ -82,9 +93,63 @@ public class AMSHookHelper {
             logi("hookActivityThread mH: " + mH);
 
             //把Handler的mCallback字段，替换为new MockClass2(mH)
-            RefInvoke.setFieldObject(Handler.class, mH, "mCallback", new ActivityThreadMessageHook(mH));
+            if (Build.VERSION.SDK_INT >= 28) {
+                RefInvoke.setFieldObject(Handler.class, mH, "mCallback", new ActivityThreadMessageHookP(mH));
+            } else {
+                RefInvoke.setFieldObject(Handler.class, mH, "mCallback", new ActivityThreadMessageHook(mH));
+            }
+            logi("hookActivityThread  success~ ");
+
         } catch (Throwable e) {
             loge(Log.getStackTraceString(e));
         }
     }
+
+    /**
+     * 1.处理未注册的Activity为AppCompatActivity类或者子类的情况
+     * 2.hook IPackageManager,处理android 4.3以下(<= 18)启动Activity,在ApplicationPackageManager.getActivityInfo方法中未找到注册的Activity的异常
+     *
+     *
+     * http://weishu.me/2016/03/07/understand-plugin-framework-ams-pms-hook/
+     *
+     * @param context          context
+     */
+    public static void hookPackageManager(Context context) {
+
+        try {
+            // 1.获取ActivityThread的值
+            Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
+            Method currentActivityThreadMethod = activityThreadClass.getDeclaredMethod("currentActivityThread");
+            currentActivityThreadMethod.setAccessible(true);
+            Object currentActivityThread = currentActivityThreadMethod.invoke(null);
+            logi("hookPackageManager currentActivityThread: " + currentActivityThread);
+
+            // 2.获取ActivityThread里面原始的 sPackageManager
+            // static IPackageManager sPackageManager;
+            Field sPackageManagerField = activityThreadClass.getDeclaredField("sPackageManager");
+            sPackageManagerField.setAccessible(true);
+            Object sPackageManager = sPackageManagerField.get(currentActivityThread);
+            logi("hookPackageManager sPackageManager: " + sPackageManager);
+
+            // 3.准备好代理对象, 用来替换原始的对象
+            Class<?> iPackageManagerInterface = Class.forName("android.content.pm.IPackageManager");
+            Object proxy = Proxy.newProxyInstance(iPackageManagerInterface.getClassLoader(),
+                    new Class<?>[]{iPackageManagerInterface},
+                    new IPackageManagerHookHandler(sPackageManager));
+            logi("hookPackageManager proxy: " + proxy);
+
+            // 4.替换掉ActivityThread里面的 sPackageManager 字段
+            sPackageManagerField.set(currentActivityThread, proxy);
+            // 5.替换 ApplicationPackageManager里面的 mPM对象
+            PackageManager packageManager=    context.getPackageManager();
+            // PackageManager的实现类ApplicationPackageManager中的mPM
+            // private final IPackageManager mPM;
+            RefInvoke.setFieldObject(packageManager,"mPM",proxy);
+
+            logi("hookPackageManager  success~ ");
+        } catch ( Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
 }

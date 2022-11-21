@@ -1,21 +1,20 @@
 package jianqiang.com.hook3.hook;
 
-import android.content.ComponentName;
 import android.content.Intent;
 import android.util.Log;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
-import jianqiang.com.hook3.StubActivity;
+import jianqiang.com.hook3.app;
 
-class MethodInvoke implements InvocationHandler {
+class IActivityInvocationHandler implements InvocationHandler {
 
     private static final String TAG = "sanbo.MockClass1";
 
     Object mBase;
 
-    public MethodInvoke(Object base) {
+    public IActivityInvocationHandler(Object base) {
         mBase = base;
     }
 
@@ -48,25 +47,26 @@ class MethodInvoke implements InvocationHandler {
 
                 Intent newIntent = new Intent();
 
-                // 替身Activity的包名, 也就是我们自己的包名
-                String stubPackage = raw.getComponent().getPackageName();
 
-                // 这里我们把启动的Activity临时替换为 StubActivity
-                ComponentName componentName = new ComponentName(stubPackage, StubActivity.class.getName());
-                newIntent.setComponent(componentName);
+                // 将启动的未注册的Activity对应的Intent,替换为安全的注册了的桩Activity的Intent
+                // 1.将未注册的Activity对应的Intent,改为安全的Intent,既在AndroidManifest.xml中配置了的Activity的Intent
+                newIntent.setComponent(app.getTarget());
 
-                // 把我们原始要启动的TargetActivity先存起来
+                // public class Intent implements Parcelable;
+                // Intent类已经实现了Parcelable接口
                 newIntent.putExtra(AMSHookHelper.EXTRA_TARGET_INTENT, raw);
 
                 // 替换掉Intent, 达到欺骗AMS的目的
                 args[index] = newIntent;
-
+                // 3.之后,再换回来,启动我们未在AndroidManifest.xml中配置的Activity
+                // final H mH = new H();
+                // hook Handler消息的处理,给Handler增加mCallback
                 logi("hook success");
-                return method.invoke(mBase, args);
+               // return method.invoke(mBase, args);
 
-            }else if("checkPermission".equals(method.getName())){
-                loge("返回类型："+method.getReturnType());
-                return 1;
+            } else if ("checkPermission".equals(method.getName())) {
+                loge("返回类型：" + method.getReturnType());
+                //return 1;
 
             }
         } catch (Throwable e) {

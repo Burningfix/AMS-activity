@@ -18,6 +18,7 @@ public class MainActivity extends Activity {
         try {
             AMSHookHelper.hookAMN();
             AMSHookHelper.hookActivityThread();
+            AMSHookHelper.hookPackageManager(newBase);
         } catch (Throwable throwable) {
             Log.e("sanbo", "attachBaseContext: ", throwable);
         }
@@ -38,7 +39,7 @@ public class MainActivity extends Activity {
                     // 但是调用者并不需要知道, 就像一个普通的Activity一样
                     startActivity(new Intent(MainActivity.this, TargetActivity.class));
                 } catch (Throwable e) {
-                    Log.i("sanbo",Log.getStackTraceString(e));
+                    Log.i("sanbo", Log.getStackTraceString(e));
                 }
             }
         });
